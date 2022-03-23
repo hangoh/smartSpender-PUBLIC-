@@ -73,6 +73,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'smart_spender.wsgi.application'
+ASGI_APPLICATION = 'smart_spender.asgi.application'
 
 
 # Database
