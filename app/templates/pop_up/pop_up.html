@@ -1,0 +1,40 @@
+
+<style type='text/css'>    
+    #pop_up_modal
+    {
+      background-color:rgba(0,0,0,0.7);
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    /* content of this box will be centered vertically */
+    #pop_up_window
+    {
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+    
+    /* content of this box will be centered horizontally and vertically */
+     #pop_up_card
+    {
+      opacity:1;
+    }
+
+</style>
+
+<div class='flex-row d-none' id='pop_up_modal'>    
+    <div id='pop_up_window'>
+        <div class="layout__box" id='pop_up_card'>
+        
+        </div>
+    </div>
+</div>
+

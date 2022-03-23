@@ -23,36 +23,41 @@ class LoginForm(forms.ModelForm):
         if not raise validation error and tell user what is wrong
         """
         if self.is_valid:
-            clean_email = self.cleaned_data['email']
-            clean_password = self.cleaned_data['password']
+            clean_email = self.cleaned_data.get('email')
+            clean_password = self.cleaned_data.get('password')
             user = authenticate(email = clean_email, password = clean_password)
             if user:
                 pass
             else:
                 raise forms.ValidationError("Email or Password Might Be Wrong")
 
-class SignUpForm(UserCreationForm):
+class RegisterForm(UserCreationForm):
     class Meta:
         model = Account
-        fields = ('email', 'username', 'password1','password2')
+        fields = ('email','username','password1','password2','currency')
 
-    def clean(self):
-        if self.is_valid:
-            """
-                will only continue if form is valid
-                get email,username password1 and password2 from form
-
-                comparision of password 1 and 2 will be take care in UserCreationFrom
-
-                need to check if the email exists in the database(others had register it before)
-
-            """
-            clean_email = self.cleaned_data["email"]
+    def clean_email(self):
+        if self.is_valid():
+            clean_email = self.cleaned_data['email']
             try:
-                email_exists = Account.objects.get(email=clean_email)
-                if email_exists:
-                    raise forms.ValidationError("{} had been used registered".format(clean_email))
+                exist_email = Account.objects.get(email = clean_email)
+                if exist_email:
+                    raise forms.ValidationError('{} has been registered by others'.format(clean_email))
             except:
                 return clean_email
 
+class UpdateDetailForm(forms.ModelForm):
+    class Meta:
+        model = Account
+        fields = ('email','username')
+
+    def clean_email(self):
+        if self.is_valid():
+            email = self.cleaned_data.get('email')
+            try:
+                email_exist = Account.objects.get(email = email).exclude(pk = self.instance.id)
+                if email_exist:
+                    raise forms.ValidationError('Email of "{}" has been registered'.format(email))
+            except:
+                return email
 

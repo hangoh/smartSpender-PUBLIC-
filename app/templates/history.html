@@ -1,0 +1,42 @@
+{% extends 'index.html' %}
+
+{% block content %}
+
+  
+
+    <div class="container">
+        <form>
+            <div class='row'>
+                <div class="form__group col ">
+                    <label for="date" id='search_label'>Showing ...</label>
+                    <input id="date_search" name="date" type="month" style='color:black' />
+                </div>
+                <button class="btn btn-primary col-2 m-auto"  type='button' id='btn_search_submit' onclick="search_record()">
+                    Search
+                </button>
+                <h2 class='m-auto' id='total_spend'>Showing...</h2>
+            </div>
+        </form>
+
+        <div class="row justify-content-md-center m-3" >
+            <div class="col col-6 m-auto">
+                <div>
+                    <canvas id="PieChart"></canvas>
+                  </div>
+            </div>
+            
+            <div class="col col-6 m-auto">
+                <div>
+                    <canvas id="BarChart"></canvas>
+                  </div>
+            </div>
+        </div>
+        <div id="current_page" style='display:none;'>0</div>
+        <div id="total_page" style='display:none;'>1</div>
+        <ul class="list-group" style='margin-top:2rem; height:57rem; overflow:auto;' id='record_container'>
+        
+        </ul>  
+    </div>
+{%include "pop_up/pop_up.html"%}
+{%include "history_js.html"%}
+{% endblock content %}

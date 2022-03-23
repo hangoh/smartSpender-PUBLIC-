@@ -1,0 +1,54 @@
+{% extends 'index.html' %}
+
+{% block content %}
+<main class="auth layout">
+
+  
+  <div class="container">
+    <div class="layout__box">
+      <div class="layout__boxHeader">
+        <div class="layout__boxTitle">
+          <h3>Edit Profile</h3>
+        </div>
+      </div>
+      <div class="layout__body">
+        
+
+        <form class="form" action="" method="POST">
+          {% csrf_token %}
+          {% if form.errors %}
+                <div style='color:red'>
+                    <p>{{form.errors}}</p>
+                </div>
+            {% endif %}
+          <div class="form__group">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="Enter Your Email" required/>
+          </div>
+          <div class=" form__group">
+            <label >Username</label>
+            <input id="username" name="username" type="username" placeholder="Enter your Username" required/>
+          </div>
+          <div class='d-flex row '>
+            <button class="btn btn-primary col m-3" >
+              UPDATE
+            </button>
+            <button class="btn btn-danger col m-3" >
+              <a href="{% url 'home_screen' %}" style="text-decoration:none; color:white">
+                  
+                  CANCEL
+              </a>
+            </button>
+          </div>
+
+          <h6 class='d-flex row m-auto'>
+              <a href="{%url 'password_change'%}" >
+                change password
+              </a>
+          </h6>
+          
+        </form>
+
+        
+</main>
+{% endblock content %}

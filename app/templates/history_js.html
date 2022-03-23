@@ -1,0 +1,722 @@
+<script type="text/javascript">
+    const date = new Date();
+    const [s_month, s_year]  = [date.getMonth()+1, date.getFullYear()];
+    if(s_month<10 && s_month>0){
+        document.getElementById('date_search').value = (s_year+'-0'+s_month).toString()
+    }else{
+        document.getElementById('date_search').value = (s_year+'-'+s_month).toString()
+    }
+    
+    function init_title(year,month){
+        var expenses_month_title = document.getElementById('search_label')
+        expenses_month_title.innerHTML="Showing past expenses record for "+year+'/'+month
+        
+    }
+
+    var bar_labels = [1,2];
+    var bar_data = {
+    labels: bar_labels,
+    datasets: [{
+        label: "...",
+        data: [1,2],
+        backgroundColor: [
+        'rgba(255, 99, 132, 0.2)',
+        
+        ],
+        borderColor: [
+        'rgb(255, 99, 132)',
+        
+        ],
+        borderWidth: 0.5
+    }]
+    };
+    var bar_config = {
+        type: 'bar',
+        data: bar_data,
+        options: {
+            scales: {
+                y: {
+                beginAtZero: true
+                }
+            }
+            },
+    };
+    let BarChart = new Chart(
+    document.getElementById('BarChart'),
+    bar_config
+    )
+
+    backgroundcolor_pie=[
+    'rgba(255, 99, 132, 0.2)',
+    'rgba(255, 159, 64, 0.2)',
+    'rgba(255, 205, 86, 0.2)',
+    'rgba(75, 192, 192, 0.2)',
+    'rgba(54, 162, 235, 0.2)',
+    'rgba(153, 102, 255, 0.2)',
+    'rgba(201, 203, 207, 0.2)'
+    ]
+    var pie_data = {
+        labels:[1,2,3,4,5,6,7],
+        datasets: [{
+            label:"Expenses Ratio",
+            data:[1,2,3,4,5,6,7],
+            backgroundColor:backgroundcolor_pie ,
+            hoverOffset: 15
+        }]
+        };
+    var pie_config = {
+    type: 'pie',
+    data: pie_data,
+    };
+
+    let PieChart = new Chart(
+    document.getElementById('PieChart'),
+    pie_config
+    );
+
+    function get_monthly_expenses_bar(year,month){
+        BarChart.update()
+        payload={
+            'picked_year':year,
+            'picked_month':month
+        }
+        $.ajax({
+            url:"{% url 'get_monthly_expenses_bar_chart' %}",
+            data:payload,
+            timeout:5000,
+            datatype:'json',
+            type:'GET',
+            success:function(data){
+                if(data){
+                    var label = year+'/'+month+" expenses (IN "+data.user.currency+")";
+                    var background_color = ['rgba(255, 99, 132, 0.2)']
+                    var border_color = ['rgb(255, 99, 132)']
+                    var datas=data.month_day_expenses
+                    BarChart.data.datasets=[]
+                    var new_data = {label:label, data:datas,backgroundColor:background_color,borderColor:border_color,borderWidth: 0.5}
+                    BarChart.data.labels=data.month_day_label
+                    BarChart.data.datasets.push(new_data)
+                    BarChart.update()
+                }
+            },
+            error:function(data){
+                console.log(data.error)
+            },
+            
+        })
+    }
+
+    function get_monthly_expenses_pie(year,month){
+        BarChart.update()
+        payload={
+            'picked_year':year,
+            'picked_month':month
+        }
+        $.ajax({
+            url:"{% url 'get_monthly_expenses_pie_chart' %}",
+            data:payload,
+            timeout:5000,
+            datatype:'json',
+            type:'GET',
+            success:function(data){
+                if(data.total_sum){
+                    document.getElementById('total_spend').innerHTML= data.user.currency+" "+data.total_sum+" spend on "+year+'/'+month
+                }else{
+                    document.getElementById('total_spend').innerHTML=" "
+                }
+                if(data){
+                    var backgroundcolor_pie=[
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(255, 159, 64, 0.2)',
+                    'rgba(255, 205, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(201, 203, 207, 0.2)'
+                    ]
+
+                    var background_color = backgroundcolor_pie.slice(0,data.category_sum.length)
+                    var datas=data.category_sum
+                    PieChart.data.datasets=[]
+                    var new_data = { label:"Expenses Ratio",data:datas,backgroundColor:background_color,hoverOffset: 15}
+                    PieChart.data.labels=data.category_label
+                    PieChart.data.datasets.push(new_data)
+                    PieChart.update()
+                }
+            },
+            error:function(data){
+                console.log(data.error)
+            },
+            
+        })
+    }
+
+
+    function addScrollEventListener(){
+        var record_container = document.getElementById('record_container')
+        record_container.addEventListener('scroll',function(){
+            if((Math.abs(record_container.scrollTop)+2) >= (record_container.scrollHeight-record_container.offsetHeight)){
+				get_expenses_record()
+			}
+        })
+    }
+
+    function disableScrollEventListener(){
+        var record_container = document.getElementById('record_container')
+        record_container.removeEventListener('scroll',addScrollEventListener())
+    }
+
+    function add_event_listener_to_button(id){
+        var edit_button = document.getElementById('edit_button_'+id)
+        edit_button.addEventListener("click", function(){open_edit_expenses_window(id)})
+        var delete_button = document.getElementById('delete_button_'+id)
+        delete_button.addEventListener("click", function(){delete_expenses(id)})
+        var view_button = document.getElementById('view_button_'+id)
+        view_button.addEventListener('click',function(){get_expenses_detail(id)})
+    }
+
+    function get_expenses_detail(id){
+        payload={
+            'id':id
+        }
+        $.ajax({
+            url:"{% url 'get_expenses_detail' %}",
+            data:payload,
+            timeout:10000,
+            datatype:'json',
+            type:'GET',
+            success:function(data){
+                console.log(data)
+                document.getElementById('pop_up_modal').classList.remove('d-none');
+                document.getElementById('html_e').classList.add('disable_scroll')
+                if(data.Response=="get"){
+                    var pop_up_card = document.getElementById('pop_up_card')
+                    var main = document.createElement('div')
+                    main.style='padding: 1.5rem;'
+                    var boxTitle = document.createElement('div')
+                    boxTitle.classList.add("layout__boxTitle")
+                    boxTitle.innerHTML =`<h3>Edit Expenses</h3>`
+                    main.appendChild(boxTitle)
+
+                    var body = document.createElement('div')
+                    body.classList.add('layout__body')
+                    var tagline = document.createElement('h5')
+                    tagline.innerHTML = "Smart Spender"
+                    tagline.classList.add('auth__tagline')
+                    body.appendChild(tagline)
+
+                    var form = document.createElement('form')
+                    form.classList.add('form')
+
+                    var title = document.createElement('div')
+                    title.classList.add('form__group')
+                    var label = document.createElement('label')
+                    label.innerHTML ="Title: "
+
+                    title.appendChild(label)
+                    var input = document.createElement('h5')
+                    input.id = 'view_title'
+                    input.innerHTML = data.user_expenses.title 
+                    title.appendChild(input)
+                    form.appendChild(title)
+
+                    var category = document.createElement('div')
+                    category.classList.add('form__group')
+                    
+                    label = document.createElement('label')
+                    label.innerHTML="Category:"
+                    category.appendChild(label)
+
+                    var category_select = document.createElement('h5')
+                    category_select.name = 'category'
+                    category_select.id="view_category_select"
+                    category_select.innerHTML = data.user_expenses.category
+                    category.appendChild(category_select)
+                    form.appendChild(category)
+
+                    var amount = document.createElement('div')
+                    amount.classList.add('form__group')
+
+                    label = document.createElement('label')
+                    label.innerHTML = `Amount ({{user.currency}}):`
+                    amount.appendChild(label)
+
+                    input = document.createElement('h5')
+                    input.id = "view_amount"
+                    input.innerHTML = data.user_expenses.amount
+                    amount.appendChild(input)
+                    form.appendChild(amount)
+
+                    var date =document.createElement('div')
+                    date.classList.add('form__group')
+
+                    label = document.createElement('label')
+                    label.innerHTML = "Date:"
+                    date.appendChild(label)
+                    
+                    input = document.createElement('h5')
+                    input.id = "view_dateUsage"
+                    input.innerHTML = data.user_expenses.dateUsage
+                    date.appendChild(input)
+                    form.appendChild(date)
+
+                    var description =document.createElement('div')
+                    description.classList.add('form__group')
+
+                    label = document.createElement('label')
+                    label.innerHTML = "Description:"
+                    description.appendChild(label)
+                    
+                    var textarea = document.createElement('h5')
+                    textarea.id = "view_description"
+                    textarea.name = 'description'
+                    textarea.type = 'text'
+                    textarea.innerHTML = data.user_expenses.description.length>0?data.user_expenses.description:'none'
+                    description.appendChild(textarea)
+                    form.appendChild(description)
+                    
+                    var button_row = document.createElement('row')
+                    button_row.classList.add('d-flex')        
+                    button = document.createElement('button')
+                    button.classList.add('btn')
+                    button.classList.add('btn-danger')
+                    button.classList.add('col')
+                    button.classList.add('m-3')
+                    button.type = 'button'
+                    button.id = 'btn_edit_expenses_cancel'
+                    button.innerHTML = "CLOSE"
+                    button.addEventListener('click', function(){close_edit_expenses_window()})
+                    button_row.appendChild(button)
+                    form.appendChild(button_row)
+                    body.appendChild(form)
+                    main.appendChild(body)
+                    pop_up_card.append(main)
+                }
+            }
+
+        })
+    }
+
+    function get_expenses_record(){
+        var picked_date = document.getElementById('date_search').value
+        var picked_year = picked_date.slice(0,4)
+        var picked_month = picked_date.slice(5,7)
+        var current_page = document.getElementById('current_page').innerHTML
+        console.log(current_page)
+        var total_page =document.getElementById('total_page').innerHTML
+        if(current_page<total_page){
+            payload={
+                'picked_year':picked_year,
+                'picked_month':picked_month,
+                'page':parseInt(current_page)+1
+            }
+            
+            $.ajax({
+                url:"{% url 'monthly_expenses_detail_pagination' %}",
+                data:payload,
+                timeout:10000,
+                datatype:'json',
+                type:'GET',
+                success:function(data){
+                    if(data.Response=='get'){
+ 
+                        var recent_record_container= document.getElementById('record_container')
+                        for(i=0;i<data.p_monthly_expenses.length;i++){
+                            if(!document.getElementById('list_item_'+data.p_monthly_expenses[i].expenses_id)){
+                                /*==============================
+                                FOR THE IDEA OF LIST ELEMENT 
+                                <li class='list-group-item'>
+                                    <div class='row'>
+                                        <div class='col'>
+                                            <h2 style='overflow: auto;'></h2>
+                                            <div class='col'>
+                                                <h4>¥</h4>
+                                                <h6></h6>
+                                                <h6>date</h6>
+                                            </div>
+                                        </div>
+                                        <div class='col '>
+                                            <div class='d-flex flex-row-reverse '>
+                                                <div class='btn btn-danger m-3' onclick=' '>
+                                                    delete
+                                                </div>
+                                                <div class='btn btn-primary m-3' onclick=' '>
+                                                    edit
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                                ================================*/  
+                                var list_item = document.createElement('li');
+                                list_item.classList.add('list-group-item')
+                                list_item.id='list_item_'+data.p_monthly_expenses[i].expenses_id
+
+                                var row_div = document.createElement('div')
+                                row_div.classList.add('row')
+
+                                var col_div_1 = document.createElement('div')
+                                col_div_1.classList.add('col')
+
+                                var col_div_2 = document.createElement('div')
+                                col_div_2.classList.add('col')
+
+                                var title_div = document.createElement('h2')
+                                title_div.style='overflow:auto;'
+                                title_div.innerHTML = data.p_monthly_expenses[i].title
+                                title_div.id = "title_id_"+data.p_monthly_expenses[i].expenses_id
+                                col_div_1.appendChild(title_div)
+
+                                var info_col = document.createElement('div')
+                                info_col.classList.add('col')
+
+                                var info_detail = document.createElement('h5')
+                                info_detail.innerHTML = data.user.currency+" "+data.p_monthly_expenses[i].amount
+                                info_detail.id = "amount_id_"+data.p_monthly_expenses[i].expenses_id
+                                info_col.appendChild(info_detail)
+                                info_detail = document.createElement('h6')
+                                info_detail.innerHTML = "Category: "+data.p_monthly_expenses[i].category
+                                info_detail.id = "category_id_"+data.p_monthly_expenses[i].expenses_id
+                                info_col.appendChild(info_detail)
+                                info_detail = document.createElement('h6')
+                                info_detail.innerHTML =data.p_monthly_expenses[i].dateUsage
+                                info_detail.id = "dateUsage_id_"+data.p_monthly_expenses[i].expenses_id
+                                info_col.appendChild(info_detail)
+
+                                col_div_1.appendChild(info_col)
+                                row_div.appendChild(col_div_1)
+                                
+                                var button_con = document.createElement('div')
+                                button_con.classList.add('flex-row-reverse')
+                                button_con.classList.add('d-flex')
+
+                                var delete_button = document.createElement('button')
+                                delete_button.classList.add('btn-danger')
+                                delete_button.classList.add('btn')
+                                delete_button.classList.add('m-3')
+                                delete_button.id="delete_button_"+data.p_monthly_expenses[i].expenses_id
+                                delete_button.innerHTML='delete'
+                                button_con.appendChild(delete_button)
+
+                                var edit_button = document.createElement('button')
+                                edit_button.classList.add('btn-primary')
+                                edit_button.classList.add('btn')
+                                edit_button.classList.add('m-3')
+                                edit_button.id="edit_button_"+data.p_monthly_expenses[i].expenses_id
+                                edit_button.innerHTML='edit'
+                                button_con.appendChild(edit_button)
+
+                                col_div_2.appendChild(button_con)
+                                var viewdetail = document.createElement('div')
+                                viewdetail.classList.add('flex-row-reverse')
+                                viewdetail.classList.add('d-flex')
+
+                                var link = document.createElement('button')
+                                link.style="border:none; background:none"
+                                link.innerHTML = "view detail"
+                                link.id="view_button_"+data.p_monthly_expenses[i].expenses_id
+
+                                viewdetail.appendChild(link)
+                                col_div_2.appendChild(viewdetail)
+                                row_div.appendChild(col_div_2)
+
+                                list_item.appendChild(row_div)
+                                recent_record_container.appendChild(list_item)
+                            }
+                        }
+                        for(i=0;i<data.p_monthly_expenses.length;i++){
+                            add_event_listener_to_button(data.p_monthly_expenses[i].expenses_id)
+                        }
+                        document.getElementById('current_page').innerHTML = data.current_page
+                        document.getElementById('total_page').innerHTML = data.all_page_count
+                        
+                    }else{
+                        /*==============================
+                            FOR THE IDEA OF LIST ELEMENT 
+                            <li class='list-group-item'>
+                                <div class='row d-flex justify-content-center'>
+                                    <div>No Record Found</div>
+                                </div>
+                            </li>
+                        ================================*/  
+                            var recent_record_container= document.getElementById('record_container')
+                            recent_record_container.innerHTML=""
+                            var list_item = document.createElement('li');
+                            list_item.classList.add('list-group-item')
+
+                            var row_div = document.createElement('div')
+                            row_div.classList.add('row')
+                            row_div.classList.add('d-flex')
+                            row_div.classList.add('align-item-center')
+                            
+                            var end_div = document.createElement('div')
+                            end_div.innerHTML = "No Record Found"
+
+                            row_div.appendChild(end_div)
+                            list_item.appendChild(row_div)
+                            recent_record_container.appendChild(list_item)
+                            
+                            document.getElementById('current_page').innerHTML = data.current_page
+                            document.getElementById('total_page').innerHTML = data.all_page_count
+                    }
+                    
+                    addScrollEventListener()
+                    
+                },
+                error:function(data){
+                    console.log(data)
+                }
+            })
+        }
+    }
+    
+    function close_edit_expenses_window(){
+        document.getElementById('pop_up_modal').classList.add('d-none')
+        document.getElementById('html_e').classList.remove('disable_scroll')
+        var pop_up_card = document.getElementById('pop_up_card')
+        pop_up_card.innerHTML=""
+    }
+    function submit_edit_expenses(id){
+        var title= document.getElementById('edit_title').value
+        var category = document.getElementById('edit_category_select').value
+        var amount=document.getElementById('edit_amount').value
+        var description =document.getElementById('edit_description').value
+        var dateUsage = document.getElementById('edit_dateUsage').value
+        payload={
+            'expenses_id':id,
+            'title':title,
+            'category':category,
+            'amount':amount,
+            'description':description,
+            'dateUsage':dateUsage,
+            'csrfmiddlewaretoken': '{{ csrf_token }}'
+            }
+            $.ajax({
+                url:"{% url 'update_expenses' %}",
+                data:payload,
+                timeout:5000,
+                datatype:'json',
+                type:'POST',
+                success:function(data){
+                    get_monthly_expenses_bar(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+                    get_monthly_expenses_pie(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+                    document.getElementById('amount_id_'+data.updated_expenses.expenses_id).innerHTML =data.user.currency+" "+data.updated_expenses.amount
+                    document.getElementById('category_id_'+data.updated_expenses.expenses_id).innerHTML = "Category: "+data.updated_expenses.category
+                    document.getElementById('title_id_'+data.updated_expenses.expenses_id).innerHTML = data.updated_expenses.title
+                    document.getElementById('dateUsage_id_'+data.updated_expenses.expenses_id).innerHTML = data.updated_expenses.dateUsage
+                    close_edit_expenses_window()
+                },
+                error:function(data){
+                    console.log(data.error)
+                }
+            })
+    }
+    function open_edit_expenses_window(id){
+        
+        document.getElementById('pop_up_modal').classList.remove('d-none');
+        document.getElementById('html_e').classList.add('disable_scroll')
+        payload={
+            "id":id,
+            'csrfmiddlewaretoken':'{% csrf_token %}'
+        }
+        $.ajax({
+            url:"{% url 'get_expenses_detail'%}",
+            data:payload,
+            datatype:'json',
+            timeout:7000,
+            method:"GET",
+            success:function(data){
+                if(data.Response=='get'){
+
+                    var pop_up_card = document.getElementById('pop_up_card')
+                    var main = document.createElement('div')
+                    main.style='padding: 1.5rem;'
+                    var boxTitle = document.createElement('div')
+                    boxTitle.classList.add("layout__boxTitle")
+                    boxTitle.innerHTML =`<h3>Edit Expenses</h3>`
+                    main.appendChild(boxTitle)
+
+                    var body = document.createElement('div')
+                    body.classList.add('layout__body')
+                    var tagline = document.createElement('h2')
+                    tagline.innerHTML = "Smart Spender"
+                    tagline.classList.add('auth__tagline')
+                    body.appendChild(tagline)
+
+                    var form = document.createElement('form')
+                    form.classList.add('form')
+                    form.method = "POST"
+
+                    var title = document.createElement('div')
+                    title.classList.add('form__group')
+                    var label = document.createElement('label')
+                    label.innerHTML ="Title"
+
+                    title.appendChild(label)
+                    var input = document.createElement('input')
+                    input.id = 'edit_title'
+                    input.name='title'
+                    input.type = 'text'
+                    input.required = true
+                    input.value = data.user_expenses.title 
+                    title.appendChild(input)
+                    form.appendChild(title)
+
+                    var category = document.createElement('div')
+                    category.classList.add('form__group')
+                    
+                    label = document.createElement('label')
+                    label.innerHTML="Category"
+                    category.appendChild(label)
+
+                    var category_select = document.createElement('select')
+                    category_select.name = 'category'
+                    category_select.id="edit_category_select"
+                    category_select.required = true
+                    category_select.innerHTML = `{% for c in expenses_category %}
+                    <option id="id_{{c}}" value="{{ c }}">{{c}}</option>
+                    {% endfor %}`
+
+                    category.appendChild(category_select)
+                    form.appendChild(category)
+
+                    var amount = document.createElement('div')
+                    amount.classList.add('form__group')
+
+                    label = document.createElement('label')
+                    label.innerHTML = `Amount ({{user.currency}})`
+                    amount.appendChild(label)
+
+                    input = document.createElement('input')
+                    input.id = "edit_amount"
+                    input.name = 'amount'
+                    input.type= 'number'
+                    input.step='0.01'
+                    input.value = data.user_expenses.amount
+                    input.required = true
+
+                    amount.appendChild(input)
+                    form.appendChild(amount)
+
+                    var date =document.createElement('div')
+                    date.classList.add('form__group')
+
+                    label = document.createElement('label')
+                    label.innerHTML = "Date"
+                    date.appendChild(label)
+                    
+                    input = document.createElement('input')
+                    input.id = "edit_dateUsage"
+                    input.name = 'dateUsage'
+                    input.type= 'date'
+                    input.pattern = "\d{4}-\d{2}-\d{2}"
+                    input.value = data.user_expenses.dateUsage
+                    input.required = true
+                    date.appendChild(input)
+                    form.appendChild(date)
+
+                    var description =document.createElement('div')
+                    description.classList.add('form__group')
+
+                    label = document.createElement('label')
+                    label.innerHTML = "Description"
+                    description.appendChild(label)
+                    
+                    var textarea = document.createElement('textarea')
+                    textarea.id = "edit_description"
+                    textarea.name = 'description'
+                    textarea.type = 'text'
+                    textarea.value = data.user_expenses.description
+                    description.appendChild(textarea)
+                    form.appendChild(description)
+                    
+                    var button_row = document.createElement('row')
+                    button_row.classList.add('d-flex')
+                    var button = document.createElement('button')
+                    button.classList.add('btn')
+                    button.classList.add('btn-primary')
+                    button.classList.add('col')
+                    button.classList.add('m-3')
+                    button.type = 'button'
+                    button.id = 'btn_edit_expenses_update'
+                    button.addEventListener('click', function(){submit_edit_expenses(data.user_expenses.expenses_id)})
+                    button.innerHTML = "UPDATE"
+                    button_row.appendChild(button)
+                    
+                    button = document.createElement('button')
+                    button.classList.add('btn')
+                    button.classList.add('btn-danger')
+                    button.classList.add('col')
+                    button.classList.add('m-3')
+                    button.type = 'button'
+                    button.id = 'btn_edit_expenses_cancel'
+                    button.innerHTML = "CANCEL"
+                    button.addEventListener('click', function(){close_edit_expenses_window()})
+                    button_row.appendChild(button)
+                    form.appendChild(button_row)
+                    body.appendChild(form)
+                    main.appendChild(body)
+                    
+                    pop_up_card.append(main)
+
+                    document.getElementById("id_"+data.user_expenses.category).selected = true
+                }
+
+            },
+            error:function(data){
+                console.log(data.error)
+            }
+        })
+    }
+
+    function delete_expenses(id){
+        payload={
+            "expenses_id":id
+        }
+        $.ajax({
+            url:"{%url 'delete_expenses'%}",
+            data:payload,
+            timeout:5000,
+            datatype:'json',
+            type:'GET',
+            success:function(data){
+                console.log(data)
+                if(data.Response=="deleted"){
+                    var recent_record_container = document.getElementById('record_container')
+                    var deleted_info = document.getElementById('list_item_'+id)
+                    recent_record_container.removeChild(deleted_info)
+
+                    get_monthly_expenses_bar(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+                    get_monthly_expenses_pie(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+
+                }
+            },
+            error:function(data){
+                alert(data.Error)
+            }
+        })
+    }
+
+    function init_page_number(){
+        document.getElementById('current_page').innerHTML = " "
+        document.getElementById('total_page').innerHTML = " "
+        document.getElementById('current_page').innerHTML = 0
+        document.getElementById('total_page').innerHTML = 1
+    }
+
+    function search_record(){
+        document.getElementById('record_container').innerHTML =""
+        get_monthly_expenses_pie(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+        get_monthly_expenses_bar(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+        disableScrollEventListener()
+        init_page_number()
+        get_expenses_record()
+        init_title(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+    }
+
+    init_page_number()
+    init_title(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+    get_monthly_expenses_bar(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+    get_monthly_expenses_pie(document.getElementById('date_search').value.slice(0,4),document.getElementById('date_search').value.slice(5,7))
+    get_expenses_record()
+</script>

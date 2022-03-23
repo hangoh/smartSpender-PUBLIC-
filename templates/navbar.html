@@ -1,0 +1,24 @@
+{% load static %}
+<header class="header header--loggedIn">
+    <div class="container">
+        <a href="{% url 'home_screen' %}" class="header__logo" style="text-decoration: none;">
+            
+            <h1>Smart Spender</h1>
+        </a>
+        
+        <nav class="header__menu">
+
+
+            <!-- Logged In -->
+            {% if request.user.is_authenticated %}
+           
+            <!-- Logged In -->
+            <a href="{% url 'logout_screen' %}">
+                
+                <p>Logout</p>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+</header>
+

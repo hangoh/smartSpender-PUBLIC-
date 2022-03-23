@@ -5,10 +5,11 @@ from django.contrib.auth.models import AbstractBaseUser,BaseUserManager
 
 
 class AccountManager(BaseUserManager):
-    def create_user(self,email,username,password=None):
+    def create_user(self,email,username,currency,password):
         user = self.model(
             email = email,
-            username =username
+            username =username,
+            currency = currency
         )
         user.set_password(password)
         user.save(using = self._db)
@@ -18,7 +19,8 @@ class AccountManager(BaseUserManager):
         user = self.create_user(
             email = email,
             username = username,
-            password = password
+            password = password,
+            currency = 'USD'
         )
 
         user.is_staff = True
@@ -30,8 +32,9 @@ class AccountManager(BaseUserManager):
 
 
 class Account(AbstractBaseUser):
-    email = models.EmailField(unique=True,verbose_name='user_email',max_length=255,blank=False,null=False)
+    email = models.EmailField(unique=True,verbose_name='email',max_length=255,blank=False,null=False)
     username = models.CharField(max_length=150,blank=False,null=False)
+    currency = models.CharField(default='USD',max_length=10,blank=False,null=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
